@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -11,8 +12,12 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    repositories = relationship("Repository", back_populates="user", cascade="all, delete-orphan")
-    queries = relationship("QueryLog", back_populates="user", cascade="all, delete-orphan")
+    repositories = relationship(
+        "Repository", back_populates="user", cascade="all, delete-orphan"
+    )
+    queries = relationship(
+        "QueryLog", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Repository(Base):
@@ -26,8 +31,12 @@ class Repository(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="repositories")
-    ingestion_jobs = relationship("IngestionJob", back_populates="repository", cascade="all, delete-orphan")
-    queries = relationship("QueryLog", back_populates="repository", cascade="all, delete-orphan")
+    ingestion_jobs = relationship(
+        "IngestionJob", back_populates="repository", cascade="all, delete-orphan"
+    )
+    queries = relationship(
+        "QueryLog", back_populates="repository", cascade="all, delete-orphan"
+    )
 
 
 class IngestionJob(Base):

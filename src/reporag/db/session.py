@@ -14,10 +14,12 @@ def get_database_url() -> str:
 
     return url
 
+
 engine = create_async_engine(get_database_url(), echo=False)
 AsyncSessionLocal = async_sessionmaker(
     bind=engine, class_=AsyncSession, expire_on_commit=False
 )
+
 
 async def get_db():
     async with AsyncSessionLocal() as session:
