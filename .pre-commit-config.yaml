@@ -15,7 +15,7 @@ repos:
         args: ["--fix"]
 
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 24.4.2
     hooks:
       - id: black
 
@@ -23,14 +23,16 @@ repos:
     hooks:
       - id: ascii-only
         name: ASCII-only check
-        entry: bash -c 'if grep -rPn "[^\x00-\x7F]" --include="*.py" --include="*.md" --include="*.sh" "$@" 2>/dev/null; then echo "Non-ASCII characters found"; exit 1; fi'
+        entry: >
+          perl -ne 'print "Non-ASCII in $ARGV: $_" and $fail=1 if /[^\x00-\x7F]/; END{exit 1 if $fail}'
         language: system
         types: [text]
         pass_filenames: true
 
       - id: internal-data-guard
         name: Block _internal/ files (except PROJECT_CONTEXT.md)
-        entry: bash -c 'for f in "$@"; do case "$f" in _internal/PROJECT_CONTEXT.md) ;; _internal/*) echo "BLOCKED: $f"; exit 1;; esac; done'
+        entry: >
+          bash -c 'for f in "$@"; do case "$f" in _internal/PROJECT_CONTEXT.md) ;; _internal/*) echo "BLOCKED: $f"; exit 1;; esac; done'
         language: system
         types: [text]
         pass_filenames: true
