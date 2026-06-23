@@ -15,8 +15,8 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
-
     # App
     app_env: str = "development"
     app_debug: bool = True
@@ -25,13 +25,12 @@ class Settings(BaseSettings):
     secret_key: SecretStr = SecretStr("change-me")
 
     # Database
-    database_url: str = "sqlite:///./reporag.db"
+    database_url: str
 
     # Neo4j
-    neo4j_uri: str = "bolt://localhost:7687"
-    neo4j_user: str = "neo4j"
-    neo4j_password: SecretStr = SecretStr("reporag123")
-
+    neo4j_uri: str
+    neo4j_username: str
+    neo4j_password: SecretStr
     # Qdrant
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection_code: str = "reporag_code"
@@ -39,7 +38,7 @@ class Settings(BaseSettings):
 
     # LLM
     llm_provider: str = "openai"
-    openai_api_key: SecretStr = SecretStr("")
+    openai_api_key: SecretStr
     openai_model: str = "gpt-4o"
     anthropic_api_key: SecretStr = SecretStr("")
     anthropic_model: str = "claude-sonnet-4-20250514"
@@ -50,12 +49,12 @@ class Settings(BaseSettings):
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # Google OAuth
-    google_client_id: str = ""
-    google_client_secret: SecretStr = SecretStr("")
+    google_client_id: str
+    google_client_secret: SecretStr
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
 
     # JWT
-    jwt_secret_key: SecretStr = SecretStr("change-me")
+    jwt_secret_key: SecretStr
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
 
