@@ -59,8 +59,6 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
-    profiles:
-      - production
 
 volumes:
   neo4j_data:
