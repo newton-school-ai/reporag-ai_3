@@ -16,14 +16,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-import os
-import sys
+import os  # noqa: E402
+import sys  # noqa: E402
 
 # Add src to the Python path so we can import our modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.reporag.db.models import Base
-from src.reporag.db.session import get_database_url
+from src.reporag.db.models import Base  # noqa: E402
+from src.reporag.db.session import get_database_url  # noqa: E402
 
 target_metadata = Base.metadata
 
