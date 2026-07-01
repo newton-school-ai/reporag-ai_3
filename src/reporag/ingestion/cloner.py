@@ -7,21 +7,14 @@ and returns a manifest describing them.
 import logging
 import os
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeAlias
 
 from git import GitCommandError, Repo
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass(slots=True)
-class FileEntry:
-    """Represents a discovered source file."""
-
-    file_path: str
-    language: str
-    size_bytes: int
+ManifestEntry: TypeAlias = tuple[str, str, int]
 
 
 class RepoCloner:
@@ -43,7 +36,7 @@ class RepoCloner:
         branch: str = "main",
         shallow: bool = True,
         extensions: dict[str, str] | None = None,
-    ) -> list[FileEntry]:
+    ) -> list[ManifestEntry]:
         """Clone a repository and discover supported source files.
 
         Args:
@@ -53,7 +46,7 @@ class RepoCloner:
             extensions: Optional mapping of file extensions to language names.
 
         Returns:
-            A list of discovered source files.
+            A list of (file_path, language, size_bytes) tuples.
 
         Raises:
             ValueError: If repository cloning fails.
@@ -92,7 +85,7 @@ class RepoCloner:
         self,
         repo_path: str,
         extensions: dict[str, str],
-    ) -> list[FileEntry]:
+    ) -> list[ManifestEntry]:
         """Discover supported files inside the repository.
 
         Args:
@@ -100,9 +93,9 @@ class RepoCloner:
             extensions: Supported file extensions.
 
         Returns:
-            A manifest of discovered source files.
+            A manifest of (file_path, language, size_bytes) tuples.
         """
-        manifest: list[FileEntry] = []
+        manifest: list[ManifestEntry] = []
 
         for root, dirs, files in os.walk(repo_path):
             if ".git" in dirs:
@@ -118,10 +111,10 @@ class RepoCloner:
 
                 try:
                     manifest.append(
-                        FileEntry(
-                            file_path=file_path,
-                            language=extensions[extension],
-                            size_bytes=os.path.getsize(file_path),
+                        (
+                            file_path,
+                            extensions[extension],
+                            os.path.getsize(file_path),
                         )
                     )
                 except OSError as exc:
