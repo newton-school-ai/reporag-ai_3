@@ -124,7 +124,11 @@ class SemanticChunker:
         parent_symbol = ""
         signature_lines = []
 
-        if node.type in ("function_definition", "class_definition", "decorated_definition"):
+        if node.type in (
+            "function_definition",
+            "class_definition",
+            "decorated_definition",
+        ):
             # For decorated, extract the core function/class inside
             core_node = node
             if node.type == "decorated_definition":
@@ -148,7 +152,9 @@ class SemanticChunker:
                     sig_end = sig_start
                 signature_lines = source_lines[sig_start : sig_end + 1]
             else:
-                block_node = node # fallback to just breaking up the node's children directly
+                block_node = (
+                    node  # fallback to just breaking up the node's children directly
+                )
         else:
             block_node = node
 
@@ -158,7 +164,11 @@ class SemanticChunker:
         current_end_line = current_start_line
 
         # Determine the initial tokens from the signature
-        base_tokens = self.count_tokens("\n".join(current_chunk_lines)) if current_chunk_lines else 0
+        base_tokens = (
+            self.count_tokens("\n".join(current_chunk_lines))
+            if current_chunk_lines
+            else 0
+        )
         current_tokens = base_tokens
 
         def flush_large_chunk():
@@ -177,7 +187,9 @@ class SemanticChunker:
                     )
                 )
                 current_chunk_lines = list(signature_lines) if signature_lines else []
-                current_start_line = current_end_line + 1 # Approximate for the next chunk
+                current_start_line = (
+                    current_end_line + 1
+                )  # Approximate for the next chunk
                 current_tokens = base_tokens
 
         children_to_process = block_node.children if block_node else []
@@ -191,12 +203,20 @@ class SemanticChunker:
                 flush_large_chunk()
                 # Text fallback chunking
                 self._text_fallback_chunk(
-                    child, source_lines, file_path, language, parent_symbol, chunks, signature_lines
+                    child,
+                    source_lines,
+                    file_path,
+                    language,
+                    parent_symbol,
+                    chunks,
+                    signature_lines,
                 )
                 current_start_line = child.end_point.row + 2
                 continue
 
-            if current_tokens + tokens > self.max_tokens * 1.1 and len(current_chunk_lines) > len(signature_lines):
+            if current_tokens + tokens > self.max_tokens * 1.1 and len(
+                current_chunk_lines
+            ) > len(signature_lines):
                 flush_large_chunk()
                 current_start_line = child.start_point.row + 1
 
@@ -214,7 +234,7 @@ class SemanticChunker:
         language: str,
         parent_symbol: str,
         chunks: list[Chunk],
-        signature_lines: list[str]
+        signature_lines: list[str],
     ):
         """Naive text chunking as a last resort for massive single statements."""
         text = self._get_node_text(node, source_lines)
@@ -222,44 +242,54 @@ class SemanticChunker:
 
         current_chunk_lines = list(signature_lines) if signature_lines else []
         current_start_line = node.start_point.row + 1
-        base_tokens = self.count_tokens("\n".join(current_chunk_lines)) if current_chunk_lines else 0
+        base_tokens = (
+            self.count_tokens("\n".join(current_chunk_lines))
+            if current_chunk_lines
+            else 0
+        )
         current_tokens = base_tokens
 
         for line in lines:
             line_tokens = self.count_tokens(line)
-            if current_tokens + line_tokens > self.max_tokens and len(current_chunk_lines) > len(signature_lines):
+            if current_tokens + line_tokens > self.max_tokens and len(
+                current_chunk_lines
+            ) > len(signature_lines):
                 c_text = "\n".join(current_chunk_lines)
                 chunks.append(
                     Chunk(
                         text=c_text,
                         file_path=file_path,
                         start_line=current_start_line,
-                        end_line=current_start_line + len(current_chunk_lines) - len(signature_lines) - 1,
+                        end_line=current_start_line
+                        + len(current_chunk_lines)
+                        - len(signature_lines)
+                        - 1,
                         parent_symbol=parent_symbol,
                         language=language,
                         token_count=current_tokens,
                     )
                 )
                 current_chunk_lines = list(signature_lines) if signature_lines else []
-                current_start_line = current_start_line + len(current_chunk_lines) - len(signature_lines)
+                current_start_line = (
+                    current_start_line + len(current_chunk_lines) - len(signature_lines)
+                )
                 current_tokens = base_tokens
 
             current_chunk_lines.append(line)
             current_tokens += line_tokens
 
         if len(current_chunk_lines) > len(signature_lines):
-             chunks.append(
-                 Chunk(
-                     text="\n".join(current_chunk_lines),
-                     file_path=file_path,
-                     start_line=current_start_line,
-                     end_line=node.end_point.row + 1,
-                     parent_symbol=parent_symbol,
-                     language=language,
-                     token_count=current_tokens,
-                 )
-             )
-
+            chunks.append(
+                Chunk(
+                    text="\n".join(current_chunk_lines),
+                    file_path=file_path,
+                    start_line=current_start_line,
+                    end_line=node.end_point.row + 1,
+                    parent_symbol=parent_symbol,
+                    language=language,
+                    token_count=current_tokens,
+                )
+            )
 
     def _get_node_text(self, node: Node, source_lines: list[str]) -> str:
         """Extract the exact text for a node from the source lines."""
@@ -267,13 +297,15 @@ class SemanticChunker:
         end_row = node.end_point.row
 
         if start_row == end_row:
-            return source_lines[start_row][node.start_point.column:node.end_point.column]
+            return source_lines[start_row][
+                node.start_point.column : node.end_point.column
+            ]
 
         lines = []
-        lines.append(source_lines[start_row][node.start_point.column:])
+        lines.append(source_lines[start_row][node.start_point.column :])
         for r in range(start_row + 1, end_row):
             lines.append(source_lines[r])
-        lines.append(source_lines[end_row][:node.end_point.column])
+        lines.append(source_lines[end_row][: node.end_point.column])
 
         return "\n".join(lines)
 
