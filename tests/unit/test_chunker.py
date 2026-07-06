@@ -18,6 +18,7 @@ def add(a, b):
     assert len(chunks) == 1
     c = chunks[0]
     assert "def add(a, b):" in c.text
+    assert c.parent_symbol == "add"
     assert c.start_line > 0
     assert c.end_line > 0
     assert c.language == "python"

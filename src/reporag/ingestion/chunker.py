@@ -65,8 +65,10 @@ class SemanticChunker:
         current_end_line = -1
         current_tokens = 0
 
+        current_parent_symbol = ""
+
         def flush_current_chunk():
-            nonlocal current_chunk_lines, current_start_line, current_end_line, current_tokens
+            nonlocal current_chunk_lines, current_start_line, current_end_line, current_tokens, current_parent_symbol
             if current_chunk_lines:
                 text = "\n".join(current_chunk_lines)
                 chunks.append(
@@ -75,7 +77,7 @@ class SemanticChunker:
                         file_path=file_path,
                         start_line=current_start_line,
                         end_line=current_end_line,
-                        parent_symbol="",
+                        parent_symbol=current_parent_symbol,
                         language=language,
                         token_count=current_tokens,
                     )
@@ -84,6 +86,7 @@ class SemanticChunker:
                 current_start_line = -1
                 current_end_line = -1
                 current_tokens = 0
+                current_parent_symbol = ""
 
         for child in root_node.children:
             text = self._get_node_text(child, source_lines)
@@ -95,15 +98,13 @@ class SemanticChunker:
                 # Split the large node
                 self._split_large_node(child, source_lines, file_path, language, chunks)
             else:
-                # If adding it exceeds max_tokens (plus a 10% leeway), flush the current chunk
-                if (
-                    current_tokens + tokens > self.max_tokens * 1.1
-                    and current_chunk_lines
-                ):
+                # If adding it exceeds max_tokens, flush the current chunk
+                if current_tokens + tokens > self.max_tokens and current_chunk_lines:
                     flush_current_chunk()
 
                 if not current_chunk_lines:
                     current_start_line = child.start_point.row + 1
+                    current_parent_symbol = self._get_symbol_name(child, source_lines)
                 current_chunk_lines.append(text)
                 current_end_line = child.end_point.row + 1
                 current_tokens += tokens
@@ -124,24 +125,19 @@ class SemanticChunker:
         parent_symbol = ""
         signature_lines = []
 
+        parent_symbol = self._get_symbol_name(node, source_lines)
+
         if node.type in (
             "function_definition",
             "class_definition",
             "decorated_definition",
         ):
-            # For decorated, extract the core function/class inside
             core_node = node
             if node.type == "decorated_definition":
                 for c in node.children:
                     if c.type in ("function_definition", "class_definition"):
                         core_node = c
                         break
-
-            name_node = self._get_child_by_type(core_node, "identifier")
-            if name_node:
-                parent_symbol = self._get_node_text(name_node, source_lines)
-
-            # Extract the signature (everything before the block)
             block_node = self._get_child_by_type(core_node, "block")
             if block_node:
                 # The signature is from the start of the node to the start of the block
@@ -214,7 +210,7 @@ class SemanticChunker:
                 current_start_line = child.end_point.row + 2
                 continue
 
-            if current_tokens + tokens > self.max_tokens * 1.1 and len(
+            if current_tokens + tokens > self.max_tokens and len(
                 current_chunk_lines
             ) > len(signature_lines):
                 flush_large_chunk()
@@ -255,24 +251,20 @@ class SemanticChunker:
                 current_chunk_lines
             ) > len(signature_lines):
                 c_text = "\n".join(current_chunk_lines)
+                body_lines_count = len(current_chunk_lines) - len(signature_lines)
                 chunks.append(
                     Chunk(
                         text=c_text,
                         file_path=file_path,
                         start_line=current_start_line,
-                        end_line=current_start_line
-                        + len(current_chunk_lines)
-                        - len(signature_lines)
-                        - 1,
+                        end_line=current_start_line + body_lines_count - 1,
                         parent_symbol=parent_symbol,
                         language=language,
                         token_count=current_tokens,
                     )
                 )
+                current_start_line = current_start_line + body_lines_count
                 current_chunk_lines = list(signature_lines) if signature_lines else []
-                current_start_line = (
-                    current_start_line + len(current_chunk_lines) - len(signature_lines)
-                )
                 current_tokens = base_tokens
 
             current_chunk_lines.append(line)
@@ -314,3 +306,20 @@ class SemanticChunker:
             if child.type == child_type:
                 return child
         return None
+
+    def _get_symbol_name(self, node: Node, source_lines: list[str]) -> str:
+        if node.type in (
+            "function_definition",
+            "class_definition",
+            "decorated_definition",
+        ):
+            core_node = node
+            if node.type == "decorated_definition":
+                for c in node.children:
+                    if c.type in ("function_definition", "class_definition"):
+                        core_node = c
+                        break
+            name_node = self._get_child_by_type(core_node, "identifier")
+            if name_node:
+                return self._get_node_text(name_node, source_lines)
+        return ""
