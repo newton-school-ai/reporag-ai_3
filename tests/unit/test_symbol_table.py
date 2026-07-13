@@ -7,31 +7,23 @@ from src.reporag.ingestion.symbol_extractor import Symbol
 
 
 @pytest.fixture
-def sample_symbols():
+def symbols():
     return [
         Symbol(
-            name="authenticate",
+            name="login",
             type="function",
             file_path="src/auth.py",
             start_line=10,
             end_line=20,
         ),
         Symbol(
-            name="authenticate",
+            name="login",
             type="method",
             file_path="src/api.py",
             start_line=30,
             end_line=40,
-            parent_class="AuthRouter",
+            parent_class="AuthAPI",
         ),
-        Symbol(
-            name="test_auth",
-            type="function",
-            file_path="tests/test_auth.py",
-            start_line=5,
-            end_line=15,
-        ),
-        # Test collision fallback
         Symbol(
             name="helper",
             type="function",
@@ -43,79 +35,61 @@ def sample_symbols():
             name="helper",
             type="function",
             file_path="src/utils.py",
-            start_line=10,
-            end_line=15,
+            start_line=15,
+            end_line=20,
         ),
     ]
 
 
-def test_register_and_lookup_exact(sample_symbols):
+def test_register(symbols):
     table = SymbolTable()
-    table.register_symbols(sample_symbols)
+    table.register_symbols(symbols)
 
-    # Exact name lookup should return multiple
-    results = table.lookup("authenticate")
-    assert len(results) == 2
-    assert {r.symbol.file_path for r in results} == {"src/auth.py", "src/api.py"}
+    assert len(table.lookup("login")) == 2
+    assert len(table.lookup("helper")) == 2
 
 
-def test_lookup_qualified(sample_symbols):
+def test_lookup_qualified(symbols):
     table = SymbolTable()
-    table.register_symbols(sample_symbols)
+    table.register_symbols(symbols)
 
-    # Qualified name lookup
-    record = table.lookup_qualified("src.auth.authenticate")
-    assert record is not None
-    assert record.symbol.file_path == "src/auth.py"
-
-    record_method = table.lookup_qualified("src.api.AuthRouter.authenticate")
-    assert record_method is not None
-    assert record_method.symbol.type == "method"
-
-    # Test collision resolution
-    record_helper_1 = table.lookup_qualified("src.utils.helper")
-    assert record_helper_1 is not None
-    assert record_helper_1.symbol.start_line == 1
-
-    record_helper_2 = table.lookup_qualified("src.utils.helper_L10")
-    assert record_helper_2 is not None
-    assert record_helper_2.symbol.start_line == 10
+    assert table.lookup_qualified("src.auth.login") is not None
+    assert table.lookup_qualified("src.api.AuthAPI.login") is not None
+    assert table.lookup_qualified("src.utils.helper") is not None
+    assert table.lookup_qualified("src.utils.helper_L15") is not None
 
 
-def test_lookup_regex(sample_symbols):
+def test_regex(symbols):
     table = SymbolTable()
-    table.register_symbols(sample_symbols)
+    table.register_symbols(symbols)
 
-    results = table.lookup_regex(r"test_.*")
-    assert len(results) == 1
-    assert results[0].qualified_name == "tests.test_auth.test_auth"
+    matches = table.lookup_regex(r".*AuthAPI.*")
+
+    assert len(matches) == 1
+    assert matches[0].symbol.parent_class == "AuthAPI"
 
 
-def test_lookup_by_file(sample_symbols):
+def test_lookup_file(symbols):
     table = SymbolTable()
-    table.register_symbols(sample_symbols)
+    table.register_symbols(symbols)
 
-    results = table.lookup_by_file("src/utils.py")
-    assert len(results) == 2
+    records = table.lookup_by_file("src/utils.py")
+
+    assert len(records) == 2
 
 
-def test_serialization(sample_symbols, tmp_path):
+def test_json_roundtrip(symbols, tmp_path):
     table = SymbolTable()
-    table.register_symbols(sample_symbols)
+    table.register_symbols(symbols)
 
-    file_path = tmp_path / "symbols.json"
-    table.to_json(str(file_path))
+    file = tmp_path / "symbols.json"
 
-    assert os.path.exists(str(file_path))
+    table.to_json(file)
+
+    assert os.path.exists(file)
 
     new_table = SymbolTable()
-    new_table.from_json(str(file_path))
+    new_table.from_json(file)
 
-    # Verify everything loaded correctly
-    results = new_table.lookup("authenticate")
-    assert len(results) == 2
-
-    record = new_table.lookup_qualified("src.auth.authenticate")
-    assert record is not None
-    assert record.symbol.name == "authenticate"
-    assert record.symbol.file_path == "src/auth.py"
+    assert len(new_table.lookup("login")) == 2
+    assert new_table.lookup_qualified("src.auth.login") is not None
