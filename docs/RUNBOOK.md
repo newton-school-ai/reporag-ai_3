@@ -19,7 +19,7 @@ curl -X POST http://localhost:8000/api/v1/repos/ingest \
 
 ### Clear Neo4j graph
 ```bash
-docker exec -it reporag-ai-neo4j-1 cypher-shell -u neo4j -p reporag123 \
+docker exec -it reporag-ai-neo4j-1 cypher-shell -u ${NEO4J_USER:-neo4j} -p ${NEO4J_PASSWORD:-reporag123} \
   "MATCH (n) DETACH DELETE n"
 ```
 

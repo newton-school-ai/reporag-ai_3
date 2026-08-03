@@ -23,7 +23,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      NEO4J_AUTH: neo4j/reporag123
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-reporag123}
       NEO4J_PLUGINS: '["apoc"]'
     volumes:
       - neo4j_data:/data
