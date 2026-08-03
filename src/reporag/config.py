@@ -1,4 +1,4 @@
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,9 +23,15 @@ class Settings(BaseSettings):
     )
 
     # Neo4j
-    NEO4J_URI: str = Field(..., description="Neo4j connection URI")
-    NEO4J_USER: str = Field(..., description="Neo4j username")
-    NEO4J_PASSWORD: SecretStr = Field(..., description="Neo4j password")
+    NEO4J_URI: str = Field("bolt://localhost:7687", description="Neo4j connection URI")
+    NEO4J_USER: str = Field(
+        "neo4j",
+        description="Neo4j username",
+        validation_alias=AliasChoices("NEO4J_USER", "NEO4J_USERNAME"),
+    )
+    NEO4J_PASSWORD: SecretStr = Field(
+        SecretStr("reporag123"), description="Neo4j password"
+    )
 
     # Qdrant
     QDRANT_HOST: str = Field("localhost", description="Qdrant host")
@@ -39,7 +45,11 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: SecretStr | None = Field(None, description="Anthropic API key")
 
     # Auth
-    JWT_SECRET: SecretStr = Field(..., description="Secret key for signing JWTs")
+    JWT_SECRET: SecretStr = Field(
+        ...,
+        description="Secret key for signing JWTs",
+        validation_alias=AliasChoices("JWT_SECRET", "JWT_SECRET_KEY"),
+    )
     JWT_ALGORITHM: str = Field("HS256", description="JWT signing algorithm")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
         1440, description="Token expiration time in minutes"

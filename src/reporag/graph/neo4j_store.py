@@ -24,6 +24,7 @@ Three concrete classes share one common protocol:
 from __future__ import annotations
 
 import logging
+import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -796,13 +797,18 @@ class Neo4jGraphStore:
         self,
         uri: str,
         *,
-        username: str = "neo4j",
-        password: str = "reporag123",
+        username: str | None = None,
+        password: str | None = None,
         database: str = "neo4j",
         batch_size: int = _BATCH_SIZE,
         max_retries: int = _CONNECT_RETRIES,
         retry_backoff: float = _RETRY_BACKOFF,
     ) -> None:
+        if username is None:
+            username = os.getenv("NEO4J_USER", "neo4j")
+        if password is None:
+            password = os.getenv("NEO4J_PASSWORD", "reporag123")
+
         self._uri = uri
         self._database = database
         self._batch_size = batch_size
@@ -1159,8 +1165,8 @@ class Neo4jGraphStore:
 def GraphStore(  # noqa: N802  (factory named like a class by convention)
     uri: str | None = None,
     *,
-    username: str = "neo4j",
-    password: str = "reporag123",
+    username: str | None = None,
+    password: str | None = None,
     database: str = "neo4j",
     batch_size: int = _BATCH_SIZE,
     fallback: bool = False,
